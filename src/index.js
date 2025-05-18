@@ -48,13 +48,32 @@ client.on("interactionCreate", async (interaction) => {
 		}
 	}
 
+	// Handle autocomplete interactions
+	if (interaction.isAutocomplete()) {
+		const { commandName } = interaction;
+
+		try {
+			// Dynamically import the command module
+			const commandModule = await import(`./commands/${commandName}.js`);
+
+			// Check if the module has an autocomplete function
+			if (commandModule.autocomplete) {
+				await commandModule.autocomplete(interaction);
+			}
+		} catch (error) {
+			console.error(`Error handling autocomplete for ${commandName}:`, error);
+			// For autocomplete, we don't send error messages to the user
+			// Just log the error and let the autocomplete fail silently
+		}
+	}
+
 	// Handle modal submissions
 	if (
 		interaction.isModalSubmit() &&
 		interaction.customId === "create_event_modal"
 	) {
 		try {
-			const { handleModalSubmit } = await import("./commands/createEvent.js");
+			const { handleModalSubmit } = await import("./commands/create-event.js");
 			await handleModalSubmit(interaction);
 		} catch (error) {
 			console.error("Error handling modal submit:", error);
