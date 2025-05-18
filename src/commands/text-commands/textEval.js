@@ -16,9 +16,6 @@ export async function handleEval(message, code) {
 	}
 
 	try {
-		// Create a loading message
-		const loadingMessage = await message.reply("Evaluating code...");
-
 		// Create a context with useful variables
 		const client = message.client;
 		const guild = message.guild;
@@ -42,7 +39,7 @@ export async function handleEval(message, code) {
 		}
 
 		// Just send the output as a code block
-		await loadingMessage.edit(`\`\`\`js\n${output}\n\`\`\``);
+		await message.reply(`\`\`\`js\n${output}\n\`\`\``);
 	} catch (error) {
 		// Send error as a code block
 		await message.reply(`\`\`\`js\n${error.message}\n\`\`\``);

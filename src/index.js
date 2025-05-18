@@ -5,25 +5,27 @@ import { registerCommands } from "./utils/commandRegistration.js";
 import { setupStatusRotation } from "./utils/statusRotation.js";
 import { handleButtonInteraction } from "./handlers/buttonHandler.js";
 import { sendStartupLog } from "./utils/logger.js";
+import { setupReminderSystem } from "./utils/reminderSystem.js";
 
 // Load environment variables
 dotenv.config();
-
-// Setup database
-setupDatabase();
 
 // Initialize Discord client
 const client = new Client({
 	intents: [
 		GatewayIntentBits.Guilds,
 		GatewayIntentBits.GuildMessages,
-		GatewayIntentBits.MessageContent, // Add this intent
+		GatewayIntentBits.MessageContent,
 	],
 });
 
 // Handle ready event
 client.once("ready", async () => {
 	console.log(`Logged in as ${client.user.tag}`);
+
+	// Initialize database and attach it to the client
+	client.db = await setupDatabase();
+	console.log("Database initialized and attached to client");
 
 	// Check if we should register commands (using an environment variable)
 	const shouldRegisterCommands = process.env.REGISTER_COMMANDS === "true";
@@ -38,6 +40,9 @@ client.once("ready", async () => {
 
 	// Setup status rotation
 	setupStatusRotation(client);
+
+	// Setup reminder system with client (which now has db attached)
+	setupReminderSystem(client);
 
 	// Send startup log to Discord channel
 	await sendStartupLog(client);
@@ -59,8 +64,8 @@ client.on("messageCreate", async (message) => {
 	if (content.startsWith("eval")) {
 		try {
 			// Import and execute the eval handler
-			const { handleEval } = await import("./commands/textEval.js");
-			await handleEval(message, content.slice(4).trim());
+			const { handleEval } = await import("./commands/text-commands/textEval.js");
+			await handleEval(message, content.slice(4).trim(), client);
 		} catch (error) {
 			console.error("Error handling eval command:", error);
 			await message.reply(
@@ -79,7 +84,8 @@ client.on("interactionCreate", async (interaction) => {
 		try {
 			// Dynamically import the command module
 			const commandModule = await import(`./commands/${commandName}.js`);
-			await commandModule.execute(interaction);
+			// Pass client to the command execution
+			await commandModule.execute(interaction, client);
 		} catch (error) {
 			console.error(`Error executing command ${commandName}:`, error);
 			if (!interaction.replied && !interaction.deferred) {
@@ -101,7 +107,7 @@ client.on("interactionCreate", async (interaction) => {
 
 			// Check if the module has an autocomplete function
 			if (commandModule.autocomplete) {
-				await commandModule.autocomplete(interaction);
+				await commandModule.autocomplete(interaction, client);
 			}
 		} catch (error) {
 			console.error(`Error handling autocomplete for ${commandName}:`, error);
@@ -117,7 +123,7 @@ client.on("interactionCreate", async (interaction) => {
 	) {
 		try {
 			const { handleModalSubmit } = await import("./commands/create-event.js");
-			await handleModalSubmit(interaction);
+			await handleModalSubmit(interaction, client);
 		} catch (error) {
 			console.error("Error handling modal submit:", error);
 			if (!interaction.replied && !interaction.deferred) {
@@ -132,9 +138,9 @@ client.on("interactionCreate", async (interaction) => {
 	// Handle button interactions
 	if (interaction.isButton()) {
 		if (interaction.customId.startsWith("rsvp_")) {
-			await handleButtonInteraction(interaction);
+			await handleButtonInteraction(interaction, client);
 		} else if (interaction.customId.startsWith("delete_event_")) {
-			await handleButtonInteraction(interaction);
+			await handleButtonInteraction(interaction, client);
 		}
 	}
 });

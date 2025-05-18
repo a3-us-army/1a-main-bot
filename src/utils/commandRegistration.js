@@ -13,7 +13,7 @@ const __dirname = path.dirname(__filename);
 // Function to get all command definitions
 export async function getAllCommands() {
 	const commands = [];
-	const commandsPath = path.join(__dirname, "commands");
+	const commandsPath = path.join(__dirname, "../commands");
 
 	try {
 		// Get all command files
@@ -30,7 +30,7 @@ export async function getAllCommands() {
 				const commandName = file.replace(".js", "");
 
 				// Import the command module
-				const commandModule = await import(`./commands/${file}`);
+				const commandModule = await import(`../commands/${file}`);
 
 				// If the command has a data property, add it to commands array
 				if (commandModule.data) {
@@ -72,20 +72,6 @@ export async function getAllCommands() {
 export async function registerCommands() {
 	// Load all command definitions
 	const commands = await getAllCommands();
-
-	// Manually add specific commands if needed
-	// This is useful for commands that require special configuration
-	if (commands.length === 0) {
-		const defaultCommand = new SlashCommandBuilder()
-			.setName("create-event")
-			.setDescription("Create a new event.")
-			.toJSON();
-
-		commands.push(defaultCommand);
-		console.log(
-			`⚠️ No commands found, adding default command: /${defaultCommand.name}`,
-		);
-	}
 
 	const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
 
