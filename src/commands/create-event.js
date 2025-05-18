@@ -9,7 +9,7 @@ import {
 	SlashCommandBuilder,
 } from "discord.js";
 import { v4 as uuidv4 } from "uuid";
-import { createEvent } from "../database.js";
+import { createEvent } from "../utils/database.js";
 
 // Command definition
 export const data = new SlashCommandBuilder()

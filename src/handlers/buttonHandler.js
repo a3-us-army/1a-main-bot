@@ -1,5 +1,5 @@
 import { EmbedBuilder } from "discord.js";
-import { updateRSVP, getEvent, getRSVPs } from "../database.js";
+import { updateRSVP, getEvent, getRSVPs } from "../utils/database.js";
 
 export async function handleButtonInteraction(interaction) {
 	const [, eventId, status] = interaction.customId.split("_");

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { getDatabase } from "../database.js";
+import { getDatabase } from "../utils/database.js";
 
 // Command definition
 export const data = new SlashCommandBuilder()

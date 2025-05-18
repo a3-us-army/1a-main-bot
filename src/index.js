@@ -1,6 +1,6 @@
 import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
-import { setupDatabase } from "./database.js";
+import { setupDatabase } from "./utils/database.js";
 import { registerCommands } from "./utils/commandRegistration.js";
 import { setupStatusRotation } from "./utils/statusRotation.js";
 import { handleButtonInteraction } from "./handlers/buttonHandler.js";
