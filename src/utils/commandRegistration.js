@@ -2,63 +2,84 @@ import { SlashCommandBuilder, REST, Routes } from "discord.js";
 import dotenv from "dotenv";
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
+import { fileURLToPath, pathToFileURL } from "url";
 
 dotenv.config();
 
-// Get the directory name
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Function to get all command definitions
+// Capitalize the first letter of a string
+function capitalize(str) {
+	return str.charAt(0).toUpperCase() + str.slice(1);
+}
+
+// Recursively get all .js files in a directory and its subdirectories, excluding text-commands
+function getAllCommandFiles(dir, fileList = [], relPath = "") {
+	const files = fs.readdirSync(dir);
+	for (const file of files) {
+		const filePath = path.join(dir, file);
+		const stat = fs.statSync(filePath);
+
+		if (stat.isDirectory() && file !== "text-commands") {
+			getAllCommandFiles(filePath, fileList, path.join(relPath, file));
+		} else if (
+			stat.isFile() &&
+			file.endsWith(".js") &&
+			!filePath.includes(`${path.sep}text-commands${path.sep}`) &&
+			!filePath.endsWith(`${path.sep}text-commands${path.sep}${file}`)
+		) {
+			fileList.push({
+				filePath,
+				category: relPath ? capitalize(relPath.split(path.sep)[0]) : "General",
+			});
+		}
+	}
+	return fileList;
+}
+
 export async function getAllCommands() {
 	const commands = [];
 	const commandsPath = path.join(__dirname, "../commands");
 
 	try {
-		// Get all command files
-		const commandFiles = fs
-			.readdirSync(commandsPath)
-			.filter((file) => file.endsWith(".js"));
+		const commandFiles = getAllCommandFiles(commandsPath);
 
 		console.log(`Found ${commandFiles.length} command files to process...`);
 
-		// Process each command file
-		for (const file of commandFiles) {
+		for (const { filePath, category } of commandFiles) {
 			try {
-				// Get command name (filename without extension)
-				const commandName = file.replace(".js", "");
+				const fileUrl = pathToFileURL(filePath).href;
+				const commandModule = await import(fileUrl);
 
-				// Import the command module
-				const commandModule = await import(`../commands/${file}`);
-
-				// If the command has a data property, add it to commands array
 				if (commandModule.data) {
 					const commandData = commandModule.data.toJSON();
+					if (category) commandData.category = category;
 					commands.push(commandData);
-					console.log(`✅ Registered command: /${commandData.name}`);
+					console.log(
+						`✅ Registered command: /${commandData.name}${category ? ` (category: ${category})` : ""}`,
+					);
 
-					// Log if command has autocomplete
 					if (commandData.options?.some((opt) => opt.autocomplete)) {
 						console.log("   - Command has autocomplete options");
 					}
 				} else {
-					// Use default naming convention if no data property exists
-					const defaultName = commandName
+					const defaultName = path
+						.basename(filePath, ".js")
 						.replace(/([A-Z])/g, "-$1")
 						.toLowerCase();
 					const commandData = new SlashCommandBuilder()
 						.setName(defaultName)
-						.setDescription(`${commandName} command`)
+						.setDescription(`${defaultName} command`)
 						.toJSON();
-
+					if (category) commandData.category = category;
 					commands.push(commandData);
 					console.log(
-						`⚠️ Using default configuration for command: /${defaultName}`,
+						`⚠️ Using default configuration for command: /${defaultName}${category ? ` (category: ${category})` : ""}`,
 					);
 				}
 			} catch (error) {
-				console.error(`❌ Error loading command from file ${file}:`, error);
+				console.error(`❌ Error loading command from file ${filePath}:`, error);
 			}
 		}
 	} catch (error) {
@@ -68,9 +89,8 @@ export async function getAllCommands() {
 	return commands;
 }
 
-// Register all commands with Discord API
+// Register all commands with Discord API and write manifest with IDs and categories
 export async function registerCommands() {
-	// Load all command definitions
 	const commands = await getAllCommands();
 
 	const rest = new REST({ version: "10" }).setToken(process.env.DISCORD_TOKEN);
@@ -80,17 +100,31 @@ export async function registerCommands() {
 			`🚀 Starting to register ${commands.length} slash commands with Discord API...`,
 		);
 
-		// Register global commands with Discord API
+		// Register and get the actual Discord command objects (with IDs)
 		const data = await rest.put(
 			Routes.applicationCommands(process.env.CLIENT_ID),
 			{ body: commands },
 		);
 
-		console.log(`✅ Successfully registered ${data.length} slash commands:`);
+		// Merge category from local commands into Discord-returned data
+		const manifest = data.map((cmd) => {
+			const local = commands.find((c) => c.name === cmd.name);
+			return {
+				...cmd,
+				category: local?.category ? local.category : "General",
+			};
+		});
 
-		// Using for...of instead of forEach
-		for (const cmd of data) {
-			console.log(`   - /${cmd.name}`);
+		// Write the manifest with categories
+		const manifestPath = path.join(process.cwd(), "commands-manifest.json");
+		fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2));
+		console.log(`✅ Wrote command manifest to ${manifestPath}`);
+
+		console.log(`✅ Successfully registered ${data.length} slash commands:`);
+		for (const cmd of manifest) {
+			console.log(
+				`   - /${cmd.name}${cmd.category ? ` (category: ${cmd.category})` : ""}`,
+			);
 		}
 
 		return data;

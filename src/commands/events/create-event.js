@@ -9,7 +9,7 @@ import {
 	SlashCommandBuilder,
 } from "discord.js";
 import { v4 as uuidv4 } from "uuid";
-import { createEvent } from "../utils/database.js";
+import { createEvent } from "../../utils/database.js";
 
 // Command definition
 export const data = new SlashCommandBuilder()
@@ -40,9 +40,9 @@ export async function execute(interaction) {
 		.setStyle(TextInputStyle.Short)
 		.setRequired(true);
 
-	const durationInput = new TextInputBuilder()
-		.setCustomId("event_duration")
-		.setLabel("Duration")
+	const locationInput = new TextInputBuilder()
+		.setCustomId("event_location")
+		.setLabel("Location")
 		.setStyle(TextInputStyle.Short)
 		.setRequired(true);
 
@@ -56,7 +56,7 @@ export async function execute(interaction) {
 		new ActionRowBuilder().addComponents(titleInput),
 		new ActionRowBuilder().addComponents(descriptionInput),
 		new ActionRowBuilder().addComponents(timeInput),
-		new ActionRowBuilder().addComponents(durationInput),
+		new ActionRowBuilder().addComponents(locationInput),
 		new ActionRowBuilder().addComponents(imageInput),
 	);
 
@@ -70,11 +70,11 @@ export async function handleModalSubmit(interaction) {
 		interaction.fields.getTextInputValue("event_description") ||
 		"No description provided";
 	const time = interaction.fields.getTextInputValue("event_time");
-	const duration = interaction.fields.getTextInputValue("event_duration");
+	const location = interaction.fields.getTextInputValue("event_location");
 	const image = interaction.fields.getTextInputValue("event_image") || null;
 	const eventId = uuidv4();
 
-	const fullDescription = `${description}\n\n**Event Time**: <t:${time}:F> (<t:${time}:R>)\n\n**Duration**: ${duration}`;
+	const fullDescription = `${description}\n\n**Event Time**: <t:${time}:F> (<t:${time}:R>)\n\n**Location**: ${location}`;
 
 	const embed = new EmbedBuilder()
 		.setTitle(`${title}`)
@@ -134,7 +134,7 @@ export async function handleModalSubmit(interaction) {
 		title,
 		description,
 		time,
-		duration,
+		location, // changed from duration
 		image,
 		message_id: message.id,
 		channel_id: message.channelId,

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { getDatabase } from "../utils/database.js";
+import { getDatabase } from "../../utils/database.js";
 
 // Command definition
 export const data = new SlashCommandBuilder()
@@ -67,8 +67,8 @@ export async function execute(interaction) {
 					inline: true,
 				},
 				{
-					name: "⏱️ Duration",
-					value: event.duration || "Not specified",
+					name: "📍 Location",
+					value: event.location || "Not specified",
 					inline: true,
 				},
 				{

@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { getDatabase } from "../utils/database.js";
+import { getDatabase, returnEquipmentForEvent } from "../../utils/database.js";
 
 // Command definition
 export const data = new SlashCommandBuilder()
@@ -73,10 +73,16 @@ export async function execute(interaction) {
 			// We'll continue even if message deletion fails
 		}
 
-		// Delete the event and associated RSVPs from the database
+		// Return equipment to inventory before deleting event and requests
+		returnEquipmentForEvent(eventId);
+
+		// Delete the event and associated RSVPs and equipment requests from the database
 		db.transaction(() => {
 			db.prepare("DELETE FROM events WHERE id = ?").run(eventId);
 			db.prepare("DELETE FROM rsvps WHERE event_id = ?").run(eventId);
+			db.prepare("DELETE FROM equipment_requests WHERE event_id = ?").run(
+				eventId,
+			);
 		})();
 
 		// Create response embed

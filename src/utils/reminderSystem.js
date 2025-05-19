@@ -1,6 +1,6 @@
 // utils/reminderSystem.js
 import { getDatabase } from "./database.js";
-import { sendAutomaticReminder } from "../commands/remind-event.js";
+import { sendAutomaticReminder } from "../commands/events/remind-event.js";
 
 // Store reminders that have already been sent to avoid duplicates
 const sentReminders = new Set();

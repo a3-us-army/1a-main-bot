@@ -1,5 +1,5 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { getDatabase } from "../utils/database.js";
+import { getDatabase } from "../../utils/database.js";
 
 // Command definition
 export const data = new SlashCommandBuilder()
@@ -25,7 +25,7 @@ export async function execute(interaction) {
 		// Query the database for past events
 		const events = db
 			.prepare(`
-      SELECT id, title, description, time, duration, creator_id, channel_id, message_id
+      SELECT id, title, description, time, location, creator_id, channel_id, message_id
       FROM events
       WHERE time < ?
       ORDER BY time DESC
@@ -78,7 +78,7 @@ export async function execute(interaction) {
 
 			// Create field for this event
 			let eventValue = `**When**: ${eventDate}\n`;
-			eventValue += `**Duration**: ${event.duration || "Not specified"}\n`;
+			eventValue += `**Location**: ${event.location || "Not specified"}\n`;
 			eventValue += `**Created by**: <@${event.creator_id}>\n`;
 			eventValue += `**Attendance**: ${attendingCount} attended, ${maybeCount} maybe, ${declinedCount} declined\n`;
 

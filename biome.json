@@ -1,8 +1,0 @@
-{
-	"formatter": {
-		"ignore": ["statuses.json5"]
-	},
-	"linter": {
-		"ignore": ["statuses.json5"]
-	}
-}

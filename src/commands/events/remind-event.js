@@ -1,5 +1,11 @@
-import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
-import { getDatabase } from "../utils/database.js";
+import {
+	SlashCommandBuilder,
+	EmbedBuilder,
+	ActionRowBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+} from "discord.js";
+import { getDatabase } from "../../utils/database.js";
 
 // Command definition
 export const data = new SlashCommandBuilder()
@@ -101,6 +107,15 @@ export async function execute(interaction) {
 			});
 		}
 
+		// Create a button to check equipment list
+		const equipmentButton = new ButtonBuilder()
+			.setCustomId(`check_equipment_${event.id}`)
+			.setLabel("Check Equipment List")
+			.setStyle(ButtonStyle.Primary)
+			.setEmoji("🧰");
+
+		const row = new ActionRowBuilder().addComponents(equipmentButton);
+
 		// Create a list of user mentions
 		const mentions = attendees.map((a) => `<@${a.user_id}>`).join(" ");
 
@@ -108,6 +123,7 @@ export async function execute(interaction) {
 		await interaction.channel.send({
 			content: `**Event Reminder!** ${mentions}`,
 			embeds: [reminderEmbed],
+			components: [row],
 		});
 
 		// Respond to the interaction
@@ -226,6 +242,14 @@ export async function sendAutomaticReminder(client, event) {
 			});
 		}
 
+		// Create a button to check equipment list
+		const equipmentButton = new ButtonBuilder()
+			.setCustomId(`check_equipment_${event.id}`)
+			.setLabel("Check Equipment List")
+			.setStyle(ButtonStyle.Secondary);
+
+		const row = new ActionRowBuilder().addComponents(equipmentButton);
+
 		// Create a list of user mentions
 		const mentions = attendees.map((a) => `<@${a.user_id}>`).join(" ");
 
@@ -237,6 +261,7 @@ export async function sendAutomaticReminder(client, event) {
 		await channel.send({
 			content: `**Automatic Event Reminder!** ${mentions}`,
 			embeds: [reminderEmbed],
+			components: [row],
 		});
 
 		console.log(
@@ -247,5 +272,94 @@ export async function sendAutomaticReminder(client, event) {
 			`Error sending automatic reminder for event ${event.id}:`,
 			error,
 		);
+	}
+}
+
+// Handler for the equipment button click
+export async function handleEquipmentButtonClick(interaction) {
+	try {
+		// Defer reply immediately to avoid timeout
+		await interaction.deferReply({ ephemeral: true });
+
+		// Extract the event ID from the custom ID
+		const eventId = interaction.customId.replace("check_equipment_", "");
+		const db = getDatabase();
+
+		// Get event information
+		const event = db.prepare("SELECT * FROM events WHERE id = ?").get(eventId);
+
+		if (!event) {
+			return await interaction.editReply({
+				content: "This event no longer exists.",
+			});
+		}
+
+		// Get equipment for this event
+		const equipment = db
+			.prepare(`
+				SELECT er.*, e.name, e.category, e.description 
+				FROM equipment_requests er
+				JOIN equipment e ON er.equipment_id = e.id
+				WHERE er.event_id = ?
+			`)
+			.all(eventId);
+
+		if (equipment.length === 0) {
+			return await interaction.editReply({
+				content: "No equipment has been requested for this event.",
+			});
+		}
+
+		// Group equipment by category and status
+		const groupedEquipment = {};
+		for (const item of equipment) {
+			if (!groupedEquipment[item.category]) {
+				groupedEquipment[item.category] = [];
+			}
+			groupedEquipment[item.category].push(item);
+		}
+
+		// Create an embed to display the equipment
+		const equipmentEmbed = new EmbedBuilder()
+			.setTitle(`Equipment for: ${event.title}`)
+			.setColor(0x3498db)
+			.setDescription(
+				"The following equipment has been requested for this event:",
+			)
+			.setFooter({ text: `Event ID: ${event.id}` });
+
+		// Add fields for each category
+		for (const [category, items] of Object.entries(groupedEquipment)) {
+			equipmentEmbed.addFields({
+				name: `📋 ${category}`,
+				value: items
+					.map(
+						(item) => `• **${item.name}** (${item.quantity}x) - ${item.status}`,
+					)
+					.join("\n"),
+				inline: false,
+			});
+		}
+
+		// Edit the deferred reply with the equipment list
+		await interaction.editReply({
+			embeds: [equipmentEmbed],
+		});
+	} catch (error) {
+		console.error("Error handling equipment button click:", error);
+		try {
+			if (!interaction.deferred && !interaction.replied) {
+				await interaction.reply({
+					content: "There was an error retrieving the equipment list.",
+					ephemeral: true,
+				});
+			} else {
+				await interaction.editReply({
+					content: "There was an error retrieving the equipment list.",
+				});
+			}
+		} catch (err) {
+			console.error("Failed to send error message to user:", err);
+		}
 	}
 }
