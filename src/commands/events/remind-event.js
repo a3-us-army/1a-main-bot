@@ -1,197 +1,28 @@
+import { getDatabase } from "../../utils/database.js";
 import {
-	SlashCommandBuilder,
 	EmbedBuilder,
 	ActionRowBuilder,
 	ButtonBuilder,
 	ButtonStyle,
+	SlashCommandBuilder,
 } from "discord.js";
-import { getDatabase } from "../../utils/database.js";
 
-// Command definition
 export const data = new SlashCommandBuilder()
 	.setName("remind-event")
-	.setDescription("Send a reminder to all attendees about an upcoming event")
+	.setDescription("Create a new event.")
 	.addStringOption((option) =>
 		option
 			.setName("id")
-			.setDescription("The ID of the event to send reminders for")
+			.setDescription("The ID of the event to delete")
 			.setRequired(true)
 			.setAutocomplete(true),
-	)
-	.addStringOption((option) =>
-		option
-			.setName("message")
-			.setDescription("Optional custom message to include with the reminder")
-			.setRequired(false),
 	);
 
-// Command execution
-export async function execute(interaction) {
-	try {
-		const eventId = interaction.options.getString("id");
-		const customMessage = interaction.options.getString("message");
-		const db = getDatabase();
-
-		// Get event information
-		const event = db.prepare("SELECT * FROM events WHERE id = ?").get(eventId);
-
-		if (!event) {
-			return await interaction.reply({
-				content: `No event found with ID: \`${eventId}\``,
-				ephemeral: true,
-			});
-		}
-
-		// Check if the user is the creator of the event or has admin permissions
-		if (
-			event.creator_id !== interaction.user.id &&
-			!interaction.member.permissions.has("ADMINISTRATOR")
-		) {
-			return await interaction.reply({
-				content:
-					"You can only send reminders for events that you created or if you're an administrator.",
-				ephemeral: true,
-			});
-		}
-
-		// Get the list of attendees who RSVP'd "yes"
-		const attendees = db
-			.prepare(
-				"SELECT user_id FROM rsvps WHERE event_id = ? AND status = 'yes'",
-			)
-			.all(eventId);
-
-		if (attendees.length === 0) {
-			return await interaction.reply({
-				content: "There are no attendees who have RSVP'd 'yes' to this event.",
-				ephemeral: true,
-			});
-		}
-
-		// Defer the reply as this might take some time
-		await interaction.deferReply();
-
-		// Create the reminder embed
-		const reminderEmbed = new EmbedBuilder()
-			.setTitle(`Reminder: ${event.title}`)
-			.setColor(0xf1c40f) // Yellow color for reminders
-			.setDescription(
-				`This is a reminder that you're attending an event ${customMessage ? `\n\n**Message from organizer**: ${customMessage}` : ""}`,
-			)
-			.addFields(
-				{
-					name: "📅 When",
-					value: `<t:${event.time}:F> (<t:${event.time}:R>)`,
-					inline: true,
-				},
-				{
-					name: "⏱️ Duration",
-					value: event.duration || "Not specified",
-					inline: true,
-				},
-			)
-			.setFooter({ text: `Event ID: ${event.id}` })
-			.setTimestamp();
-
-		// Add image if it exists
-		if (event.image) {
-			reminderEmbed.setImage(event.image);
-		}
-
-		// Add link to original message if available
-		if (event.channel_id && event.message_id) {
-			reminderEmbed.addFields({
-				name: "🔗 Event Link",
-				value: `[Jump to Event](https://discord.com/channels/${interaction.guildId}/${event.channel_id}/${event.message_id})`,
-				inline: false,
-			});
-		}
-
-		// Create a button to check equipment list
-		const equipmentButton = new ButtonBuilder()
-			.setCustomId(`check_equipment_${event.id}`)
-			.setLabel("Check Equipment List")
-			.setStyle(ButtonStyle.Primary)
-			.setEmoji("🧰");
-
-		const row = new ActionRowBuilder().addComponents(equipmentButton);
-
-		// Create a list of user mentions
-		const mentions = attendees.map((a) => `<@${a.user_id}>`).join(" ");
-
-		// Send the reminder to the channel where the command was used
-		await interaction.channel.send({
-			content: `**Event Reminder!** ${mentions}`,
-			embeds: [reminderEmbed],
-			components: [row],
-		});
-
-		// Respond to the interaction
-		await interaction.editReply({
-			content: `Successfully sent reminders to ${attendees.length} attendees for the event "${event.title}".`,
-		});
-	} catch (error) {
-		console.error("Error executing remind-event command:", error);
-		if (!interaction.replied && !interaction.deferred) {
-			await interaction.reply({
-				content: "There was an error sending the event reminders.",
-				ephemeral: true,
-			});
-		} else {
-			await interaction.editReply({
-				content: "There was an error sending the event reminders.",
-			});
-		}
-	}
-}
-
-// Autocomplete handler
-export async function autocomplete(interaction) {
-	try {
-		const focusedValue = interaction.options.getFocused().toLowerCase();
-		const db = getDatabase();
-		const currentTime = Math.floor(Date.now() / 1000);
-
-		// Get upcoming events
-		const events = db
-			.prepare(`
-        SELECT id, title, time 
-        FROM events 
-        WHERE time > ?
-        ORDER BY time ASC 
-        LIMIT 25
-      `)
-			.all(currentTime);
-
-		// Filter events based on user input (matching either ID or title)
-		const filtered = events.filter(
-			(event) =>
-				event.id.toLowerCase().includes(focusedValue) ||
-				event.title.toLowerCase().includes(focusedValue),
-		);
-
-		// Format the choices for autocomplete
-		const choices = filtered.map((event) => {
-			// Format time as relative time (e.g., "in 2 days")
-			const timeString = `<t:${event.time}:R>`;
-
-			return {
-				name: `${event.title} (${timeString}) - ID: ${event.id}`,
-				value: event.id,
-			};
-		});
-
-		// Respond with the choices (max 25)
-		await interaction.respond(choices.slice(0, 25));
-	} catch (error) {
-		console.error("Error handling autocomplete:", error);
-		// Provide empty results in case of error
-		await interaction.respond([]);
-	}
-}
+// Store reminders that have already been sent to avoid duplicates
+const sentReminders = new Set();
 
 // Function to send automatic reminders
-export async function sendAutomaticReminder(client, event) {
+export async function sendAutomaticReminder(client, event, options = {}) {
 	try {
 		const db = getDatabase();
 
@@ -206,12 +37,20 @@ export async function sendAutomaticReminder(client, event) {
 			return; // No attendees to remind
 		}
 
+		// Determine reminder timing for the message
+		let timingText = "starting soon!";
+		if (options.minutes === 30) {
+			timingText = "starting in 30 minutes!";
+		} else if (options.minutes === 0) {
+			timingText = "starting now!";
+		}
+
 		// Create the reminder embed
 		const reminderEmbed = new EmbedBuilder()
 			.setTitle(`Reminder: ${event.title}`)
 			.setColor(0xf1c40f) // Yellow color for reminders
 			.setDescription(
-				`This is an automatic reminder that you're attending an event starting in about an hour!`,
+				`This is an automatic reminder that your event is ${timingText}`,
 			)
 			.addFields(
 				{
@@ -220,8 +59,8 @@ export async function sendAutomaticReminder(client, event) {
 					inline: true,
 				},
 				{
-					name: "⏱️ Duration",
-					value: event.duration || "Not specified",
+					name: "📍 Location",
+					value: event.location || "Not specified",
 					inline: true,
 				},
 			)
@@ -275,91 +114,153 @@ export async function sendAutomaticReminder(client, event) {
 	}
 }
 
-// Handler for the equipment button click
-export async function handleEquipmentButtonClick(interaction) {
+// Check for upcoming events and send reminders
+export async function checkAndSendReminders(client) {
 	try {
-		// Defer reply immediately to avoid timeout
-		await interaction.deferReply({ ephemeral: true });
+		const db = getDatabase();
+		const currentTime = Math.floor(Date.now() / 1000);
 
-		// Extract the event ID from the custom ID
-		const eventId = interaction.customId.replace("check_equipment_", "");
+		// 30-minute reminder window
+		const thirtyMinTime = currentTime + 1800;
+		const thirtyMinStart = thirtyMinTime - 120;
+		const thirtyMinEnd = thirtyMinTime + 120;
+
+		// Event start reminder window
+		const startTime = currentTime;
+		const startWindowStart = startTime - 120;
+		const startWindowEnd = startTime + 120;
+
+		// Get events for 30-minute reminders
+		const events30m = db
+			.prepare(`
+				SELECT * FROM events 
+				WHERE time BETWEEN ? AND ?
+				ORDER BY time ASC
+			`)
+			.all(thirtyMinStart, thirtyMinEnd);
+
+		// Get events for start-time reminders
+		const eventsStart = db
+			.prepare(`
+				SELECT * FROM events 
+				WHERE time BETWEEN ? AND ?
+				ORDER BY time ASC
+			`)
+			.all(startWindowStart, startWindowEnd);
+
+		// 30-minute reminders
+		for (const event of events30m) {
+			const reminderKey = `reminder_30m_${event.id}`;
+			if (sentReminders.has(reminderKey)) continue;
+
+			console.log(
+				`Sending 30-minute reminder for event: ${event.title} (${event.id})`,
+			);
+			await sendAutomaticReminder(client, event, { minutes: 30 });
+
+			sentReminders.add(reminderKey);
+
+			try {
+				db.prepare(`
+					CREATE TABLE IF NOT EXISTS sent_reminders (
+						event_id TEXT,
+						reminder_type TEXT,
+						sent_at INTEGER,
+						PRIMARY KEY (event_id, reminder_type)
+					)
+				`).run();
+
+				db.prepare(`
+					INSERT OR REPLACE INTO sent_reminders (event_id, reminder_type, sent_at)
+					VALUES (?, ?, ?)
+				`).run(event.id, "30m", currentTime);
+			} catch (dbError) {
+				console.error("Error recording 30m sent reminder:", dbError);
+			}
+		}
+
+		// Start-time reminders
+		for (const event of eventsStart) {
+			const reminderKey = `reminder_start_${event.id}`;
+			if (sentReminders.has(reminderKey)) continue;
+
+			console.log(
+				`Sending start-time reminder for event: ${event.title} (${event.id})`,
+			);
+			await sendAutomaticReminder(client, event, { minutes: 0 });
+
+			sentReminders.add(reminderKey);
+
+			try {
+				db.prepare(`
+					CREATE TABLE IF NOT EXISTS sent_reminders (
+						event_id TEXT,
+						reminder_type TEXT,
+						sent_at INTEGER,
+						PRIMARY KEY (event_id, reminder_type)
+					)
+				`).run();
+
+				db.prepare(`
+					INSERT OR REPLACE INTO sent_reminders (event_id, reminder_type, sent_at)
+					VALUES (?, ?, ?)
+				`).run(event.id, "start", currentTime);
+			} catch (dbError) {
+				console.error("Error recording start-time sent reminder:", dbError);
+			}
+		}
+	} catch (error) {
+		console.error("Error checking for event reminders:", error);
+	}
+}
+
+// Load already sent reminders from database on startup
+function loadSentReminders() {
+	try {
 		const db = getDatabase();
 
-		// Get event information
-		const event = db.prepare("SELECT * FROM events WHERE id = ?").get(eventId);
-
-		if (!event) {
-			return await interaction.editReply({
-				content: "This event no longer exists.",
-			});
-		}
-
-		// Get equipment for this event
-		const equipment = db
-			.prepare(`
-				SELECT er.*, e.name, e.category, e.description 
-				FROM equipment_requests er
-				JOIN equipment e ON er.equipment_id = e.id
-				WHERE er.event_id = ?
-			`)
-			.all(eventId);
-
-		if (equipment.length === 0) {
-			return await interaction.editReply({
-				content: "No equipment has been requested for this event.",
-			});
-		}
-
-		// Group equipment by category and status
-		const groupedEquipment = {};
-		for (const item of equipment) {
-			if (!groupedEquipment[item.category]) {
-				groupedEquipment[item.category] = [];
-			}
-			groupedEquipment[item.category].push(item);
-		}
-
-		// Create an embed to display the equipment
-		const equipmentEmbed = new EmbedBuilder()
-			.setTitle(`Equipment for: ${event.title}`)
-			.setColor(0x3498db)
-			.setDescription(
-				"The following equipment has been requested for this event:",
+		db.prepare(`
+			CREATE TABLE IF NOT EXISTS sent_reminders (
+				event_id TEXT,
+				reminder_type TEXT,
+				sent_at INTEGER,
+				PRIMARY KEY (event_id, reminder_type)
 			)
-			.setFooter({ text: `Event ID: ${event.id}` });
+		`).run();
 
-		// Add fields for each category
-		for (const [category, items] of Object.entries(groupedEquipment)) {
-			equipmentEmbed.addFields({
-				name: `📋 ${category}`,
-				value: items
-					.map(
-						(item) => `• **${item.name}** (${item.quantity}x) - ${item.status}`,
-					)
-					.join("\n"),
-				inline: false,
-			});
+		const existingReminders = db
+			.prepare("SELECT event_id, reminder_type FROM sent_reminders")
+			.all();
+
+		for (const reminder of existingReminders) {
+			sentReminders.add(
+				`reminder_${reminder.reminder_type}_${reminder.event_id}`,
+			);
 		}
 
-		// Edit the deferred reply with the equipment list
-		await interaction.editReply({
-			embeds: [equipmentEmbed],
-		});
+		console.log(`Loaded ${existingReminders.length} previously sent reminders`);
+
+		// Clean up old reminders (older than 24 hours)
+		const cleanupTime = Math.floor(Date.now() / 1000) - 24 * 60 * 60;
+		db.prepare("DELETE FROM sent_reminders WHERE sent_at < ?").run(cleanupTime);
 	} catch (error) {
-		console.error("Error handling equipment button click:", error);
-		try {
-			if (!interaction.deferred && !interaction.replied) {
-				await interaction.reply({
-					content: "There was an error retrieving the equipment list.",
-					ephemeral: true,
-				});
-			} else {
-				await interaction.editReply({
-					content: "There was an error retrieving the equipment list.",
-				});
-			}
-		} catch (err) {
-			console.error("Failed to send error message to user:", err);
-		}
+		console.error("Error loading sent reminders:", error);
 	}
+}
+
+// Initialize the reminder system
+export function setupReminderSystem(client) {
+	loadSentReminders();
+
+	let reminderInterval = null;
+	if (reminderInterval) {
+		clearInterval(reminderInterval);
+	}
+
+	reminderInterval = setInterval(
+		() => checkAndSendReminders(client),
+		60 * 1000,
+	);
+
+	console.log("Event reminder system initialized");
 }

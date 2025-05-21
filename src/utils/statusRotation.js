@@ -84,5 +84,5 @@ function updateStatus(client) {
 export function setupStatusRotation(client) {
 	statusMessages = loadStatusMessages();
 	updateStatus(client);
-	setInterval(() => updateStatus(client), 30000);
+	setInterval(() => updateStatus(client), 15000);
 }

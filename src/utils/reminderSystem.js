@@ -1,4 +1,3 @@
-// utils/reminderSystem.js
 import { getDatabase } from "./database.js";
 import { sendAutomaticReminder } from "../commands/events/remind-event.js";
 
@@ -11,60 +10,93 @@ export async function checkAndSendReminders(client) {
 		const db = getDatabase();
 		const currentTime = Math.floor(Date.now() / 1000);
 
-		// Look for events happening in about 1 hour (3600 seconds)
-		// Use a smaller buffer to reduce chance of duplicates
-		const reminderTime = currentTime + 3600;
-		const bufferStart = reminderTime - 120; // 2 minutes before
-		const bufferEnd = reminderTime + 120; // 2 minutes after
+		// 30-minute reminder window
+		const thirtyMinTime = currentTime + 1800;
+		const thirtyMinStart = thirtyMinTime - 120;
+		const thirtyMinEnd = thirtyMinTime + 120;
 
-		// Get events that need reminders
-		const events = db
+		// Event start reminder window
+		const startTime = currentTime;
+		const startWindowStart = startTime - 120;
+		const startWindowEnd = startTime + 120;
+
+		// Get events for 30-minute reminders
+		const events30m = db
 			.prepare(`
-        SELECT * FROM events 
-        WHERE time BETWEEN ? AND ?
-        ORDER BY time ASC
-      `)
-			.all(bufferStart, bufferEnd);
+				SELECT * FROM events 
+				WHERE time BETWEEN ? AND ?
+				ORDER BY time ASC
+			`)
+			.all(thirtyMinStart, thirtyMinEnd);
 
-		console.log(
-			`Checking reminders: Found ${events.length} events happening in ~1 hour`,
-		);
+		// Get events for start-time reminders
+		const eventsStart = db
+			.prepare(`
+				SELECT * FROM events 
+				WHERE time BETWEEN ? AND ?
+				ORDER BY time ASC
+			`)
+			.all(startWindowStart, startWindowEnd);
 
-		// Send reminders for each event
-		for (const event of events) {
-			// Skip if reminder was already sent
-			const reminderKey = `reminder_${event.id}`;
-			if (sentReminders.has(reminderKey)) {
-				console.log(`Skipping reminder for event ${event.id} - already sent`);
-				continue;
-			}
+		// 30-minute reminders
+		for (const event of events30m) {
+			const reminderKey = `reminder_30m_${event.id}`;
+			if (sentReminders.has(reminderKey)) continue;
 
-			console.log(`Sending reminder for event: ${event.title} (${event.id})`);
+			console.log(
+				`Sending 30-minute reminder for event: ${event.title} (${event.id})`,
+			);
+			await sendAutomaticReminder(client, event, { minutes: 30 });
 
-			// Send the reminder
-			await sendAutomaticReminder(client, event);
-
-			// Mark as sent in both memory and database
 			sentReminders.add(reminderKey);
 
-			// Add a record in the database that this reminder was sent
-			// This ensures reminders aren't duplicated even if the bot restarts
 			try {
-				// First check if we need to create the reminders table
 				db.prepare(`
-          CREATE TABLE IF NOT EXISTS sent_reminders (
-            event_id TEXT PRIMARY KEY,
-            sent_at INTEGER
-          )
-        `).run();
+					CREATE TABLE IF NOT EXISTS sent_reminders (
+						event_id TEXT,
+						reminder_type TEXT,
+						sent_at INTEGER,
+						PRIMARY KEY (event_id, reminder_type)
+					)
+				`).run();
 
-				// Then record that we sent this reminder
 				db.prepare(`
-          INSERT OR REPLACE INTO sent_reminders (event_id, sent_at)
-          VALUES (?, ?)
-        `).run(event.id, currentTime);
+					INSERT OR REPLACE INTO sent_reminders (event_id, reminder_type, sent_at)
+					VALUES (?, ?, ?)
+				`).run(event.id, "30m", currentTime);
 			} catch (dbError) {
-				console.error("Error recording sent reminder:", dbError);
+				console.error("Error recording 30m sent reminder:", dbError);
+			}
+		}
+
+		// Start-time reminders
+		for (const event of eventsStart) {
+			const reminderKey = `reminder_start_${event.id}`;
+			if (sentReminders.has(reminderKey)) continue;
+
+			console.log(
+				`Sending start-time reminder for event: ${event.title} (${event.id})`,
+			);
+			await sendAutomaticReminder(client, event, { minutes: 0 });
+
+			sentReminders.add(reminderKey);
+
+			try {
+				db.prepare(`
+					CREATE TABLE IF NOT EXISTS sent_reminders (
+						event_id TEXT,
+						reminder_type TEXT,
+						sent_at INTEGER,
+						PRIMARY KEY (event_id, reminder_type)
+					)
+				`).run();
+
+				db.prepare(`
+					INSERT OR REPLACE INTO sent_reminders (event_id, reminder_type, sent_at)
+					VALUES (?, ?, ?)
+				`).run(event.id, "start", currentTime);
+			} catch (dbError) {
+				console.error("Error recording start-time sent reminder:", dbError);
 			}
 		}
 	} catch (error) {
@@ -77,21 +109,27 @@ function loadSentReminders() {
 	try {
 		const db = getDatabase();
 
-		// Create the table if it doesn't exist
-		db.prepare(`
-      CREATE TABLE IF NOT EXISTS sent_reminders (
-        event_id TEXT PRIMARY KEY,
-        sent_at INTEGER
-      )
-    `).run();
+		// Drop the old table if it exists (only needed once)
+		db.prepare("DROP TABLE IF EXISTS sent_reminders").run();
 
-		// Load existing reminders into memory
+		// Create the new table with the correct schema
+		db.prepare(`
+			CREATE TABLE IF NOT EXISTS sent_reminders (
+				event_id TEXT,
+				reminder_type TEXT,
+				sent_at INTEGER,
+				PRIMARY KEY (event_id, reminder_type)
+			)
+		`).run();
+
 		const existingReminders = db
-			.prepare("SELECT event_id FROM sent_reminders")
+			.prepare("SELECT event_id, reminder_type FROM sent_reminders")
 			.all();
 
 		for (const reminder of existingReminders) {
-			sentReminders.add(`reminder_${reminder.event_id}`);
+			sentReminders.add(
+				`reminder_${reminder.reminder_type}_${reminder.event_id}`,
+			);
 		}
 
 		console.log(`Loaded ${existingReminders.length} previously sent reminders`);
@@ -106,18 +144,13 @@ function loadSentReminders() {
 
 // Initialize the reminder system
 export function setupReminderSystem(client) {
-	// Load existing reminders first
 	loadSentReminders();
 
-	// Use a single interval reference to prevent multiple intervals
 	let reminderInterval = null;
-
-	// Clear any existing interval just to be safe
 	if (reminderInterval) {
 		clearInterval(reminderInterval);
 	}
 
-	// Check for reminders every minute
 	reminderInterval = setInterval(
 		() => checkAndSendReminders(client),
 		60 * 1000,

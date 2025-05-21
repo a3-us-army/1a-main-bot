@@ -1,7 +1,6 @@
 import { SlashCommandBuilder, EmbedBuilder } from "discord.js";
 import { getDatabase, returnEquipmentForEvent } from "../../utils/database.js";
 
-// Command definition
 export const data = new SlashCommandBuilder()
 	.setName("delete-event")
 	.setDescription("Delete an event by its ID")
@@ -13,13 +12,11 @@ export const data = new SlashCommandBuilder()
 			.setAutocomplete(true),
 	);
 
-// Command execution
 export async function execute(interaction) {
 	try {
 		const eventId = interaction.options.getString("id");
 		const db = getDatabase();
 
-		// First check if the event exists and get all necessary information
 		const event = db
 			.prepare(
 				"SELECT title, message_id, channel_id, creator_id FROM events WHERE id = ?",
@@ -33,7 +30,6 @@ export async function execute(interaction) {
 			});
 		}
 
-		// Check if the user is the creator of the event or has admin permissions
 		if (
 			event.creator_id !== interaction.user.id &&
 			!interaction.member.permissions.has("ADMINISTRATOR")
@@ -45,22 +41,17 @@ export async function execute(interaction) {
 			});
 		}
 
-		// Try to delete the Discord message first
 		let messageDeleted = false;
 		try {
-			// Defer the reply to give us time to delete the message
 			await interaction.deferReply();
 
-			// Log debug info
 			console.log("Attempting to delete message...");
 			console.log("Channel ID:", event.channel_id);
 			console.log("Message ID:", event.message_id);
 
-			// Get the channel
 			const channel = await interaction.client.channels.fetch(event.channel_id);
 
 			if (channel) {
-				// Try to get and delete the message
 				const message = await channel.messages.fetch(event.message_id);
 				if (message) {
 					await message.delete();
@@ -70,22 +61,21 @@ export async function execute(interaction) {
 			}
 		} catch (messageError) {
 			console.error("Error deleting message:", messageError);
-			// We'll continue even if message deletion fails
 		}
 
 		// Return equipment to inventory before deleting event and requests
 		returnEquipmentForEvent(eventId);
 
-		// Delete the event and associated RSVPs and equipment requests from the database
+		// Delete the event and all associated data from the database
 		db.transaction(() => {
-			db.prepare("DELETE FROM events WHERE id = ?").run(eventId);
+			db.prepare("DELETE FROM sent_reminders WHERE event_id = ?").run(eventId);
 			db.prepare("DELETE FROM rsvps WHERE event_id = ?").run(eventId);
 			db.prepare("DELETE FROM equipment_requests WHERE event_id = ?").run(
 				eventId,
 			);
+			db.prepare("DELETE FROM events WHERE id = ?").run(eventId);
 		})();
 
-		// Create response embed
 		const embed = new EmbedBuilder()
 			.setTitle("Event Deleted")
 			.setColor(0x00ff00)
@@ -110,7 +100,6 @@ export async function execute(interaction) {
 
 		embed.setTimestamp();
 
-		// Send the response
 		await interaction.editReply({ embeds: [embed] });
 	} catch (error) {
 		console.error("Error executing delete-event command:", error);
@@ -134,7 +123,6 @@ export async function autocomplete(interaction) {
 		const db = getDatabase();
 		const currentTime = Math.floor(Date.now() / 1000);
 
-		// Get upcoming events
 		const events = db
 			.prepare(`
         SELECT id, title, time 
@@ -145,30 +133,23 @@ export async function autocomplete(interaction) {
       `)
 			.all(currentTime);
 
-		// Filter events based on user input (matching either ID or title)
 		const filtered = events.filter(
 			(event) =>
 				event.id.toLowerCase().includes(focusedValue) ||
 				event.title.toLowerCase().includes(focusedValue),
 		);
 
-		// Format the choices for autocomplete
 		const choices = filtered.map((event) => {
-			// Format time as relative time (e.g., "in 2 days")
-			const eventTime = new Date(event.time * 1000);
 			const timeString = `<t:${event.time}:R>`;
-
 			return {
 				name: `${event.title} (${timeString}) - ID: ${event.id}`,
 				value: event.id,
 			};
 		});
 
-		// Respond with the choices (max 25)
 		await interaction.respond(choices.slice(0, 25));
 	} catch (error) {
 		console.error("Error handling autocomplete:", error);
-		// Provide empty results in case of error
 		await interaction.respond([]);
 	}
 }

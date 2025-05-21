@@ -2,8 +2,9 @@
 	"name": "1a-bot-djs",
 	"version": "1.0.1",
 	"main": "index.js",
+	"type": "module",
 	"scripts": {
-		"start": "ts-node src/index.js"
+		"start": "node src/index.js"
 	},
 	"keywords": [],
 	"author": "",
@@ -17,6 +18,7 @@
 		"discord.js": "^14.19.3",
 		"dotenv": "^16.5.0",
 		"fs": "^0.0.1-security",
+		"node-fetch": "^3.3.2",
 		"path": "^0.12.7",
 		"url": "^0.11.4",
 		"uuid": "^11.1.0",

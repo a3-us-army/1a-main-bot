@@ -37,7 +37,6 @@ function getMention(cmd, sub = null, group = null) {
 }
 
 function userHasPermission(cmd, member) {
-	// If no permissions specified, everyone can use it
 	if (!cmd.default_member_permissions || cmd.default_member_permissions === "0")
 		return true;
 	const required = BigInt(cmd.default_member_permissions);
@@ -71,6 +70,8 @@ export async function execute(interaction) {
 		}
 
 		const categoryNames = Object.keys(categories);
+		const totalCommands = filteredCommands.length;
+
 		if (categoryNames.length === 0) {
 			return await interaction.reply({
 				content: "No commands found that you have permission to use.",
@@ -94,7 +95,7 @@ export async function execute(interaction) {
 					})),
 				)
 				.setFooter({
-					text: "Use the select menu or buttons below to navigate.",
+					text: `Total commands: ${totalCommands} • Use the select menu or buttons below to navigate.`,
 				});
 			return embed;
 		};
@@ -104,19 +105,16 @@ export async function execute(interaction) {
 			const cmds = categories[cat];
 			const lines = [];
 			for (const cmd of cmds) {
-				// If the command has subcommands or subcommand groups
 				if (
 					Array.isArray(cmd.options) &&
 					cmd.options.some((opt) => opt.type === 1 || opt.type === 2)
 				) {
 					for (const opt of cmd.options) {
 						if (opt.type === 1) {
-							// Subcommand
 							lines.push(
 								`${getMention(cmd, opt.name)} — ${opt.description || "No description"}`,
 							);
 						} else if (opt.type === 2 && Array.isArray(opt.options)) {
-							// Subcommand group
 							for (const sub of opt.options) {
 								if (sub.type === 1) {
 									lines.push(
@@ -127,7 +125,6 @@ export async function execute(interaction) {
 						}
 					}
 				} else {
-					// Regular command
 					lines.push(
 						cmd.id
 							? `</${cmd.name}:${cmd.id}> — ${cmd.description || "No description"}`
@@ -144,7 +141,7 @@ export async function execute(interaction) {
 						: "") + lines.join("\n\n"),
 				)
 				.setFooter({
-					text: `Category ${pageIdx + 1} of ${categoryNames.length} • Use the select menu or buttons below to navigate or return home.`,
+					text: `Category ${pageIdx + 1} of ${categoryNames.length} • Total commands: ${totalCommands} • Use the select menu or buttons below to navigate or return home.`,
 				});
 			return embed;
 		};

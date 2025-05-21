@@ -370,7 +370,7 @@ async function handleAddEquipment(interaction) {
 				},
 				{
 					name: "Event Date",
-					value: new Date(event.time).toLocaleString(),
+					value: `<t:${event.time}:F> (<t:${event.time}:R>)`,
 					inline: true,
 				},
 				{
@@ -389,7 +389,7 @@ async function handleAddEquipment(interaction) {
 					inline: true,
 				},
 			],
-			color: 0xffa500, // Orange for pending
+			color: 0xffa500,
 		});
 
 		// First, acknowledge the interaction
@@ -471,7 +471,6 @@ async function handleListEquipment(interaction) {
 	const targetChannel =
 		interaction.options.getChannel("channel") || interaction.channel;
 
-	// Verify event exists
 	const event = getEvent(eventId);
 	if (!event) {
 		return interaction.reply({
@@ -489,7 +488,6 @@ async function handleListEquipment(interaction) {
 		});
 	}
 
-	// Group equipment by category
 	const groupedEquipment = {};
 	// biome-ignore lint/complexity/noForEach: <explanation>
 	equipmentList.forEach((item) => {
@@ -499,7 +497,6 @@ async function handleListEquipment(interaction) {
 		groupedEquipment[item.category].push(item);
 	});
 
-	// Create embed
 	const embed = createEmbed({
 		title: `Equipment for: ${event.title}`,
 		description: "The following equipment has been requested for this event:",
@@ -517,7 +514,13 @@ async function handleListEquipment(interaction) {
 		footer: { text: `Event ID: ${eventId}` },
 	});
 
-	// Send to the target channel
+	// Add event date as a field
+	embed.addFields({
+		name: "Event Date",
+		value: `<t:${event.time}:F> (<t:${event.time}:R>)`,
+		inline: false,
+	});
+
 	if (targetChannel && targetChannel.id !== interaction.channelId) {
 		await targetChannel.send({ embeds: [embed] });
 		await interaction.reply({
@@ -525,7 +528,6 @@ async function handleListEquipment(interaction) {
 			ephemeral: true,
 		});
 	} else {
-		// If posting in the same channel, just reply to the interaction
 		await interaction.reply({
 			embeds: [embed],
 			ephemeral: false,
@@ -593,7 +595,6 @@ async function handleApproveEquipment(interaction) {
 	const eventId = interaction.options.getString("event-id");
 	const equipmentId = interaction.options.getString("equipment-id");
 
-	// Verify event exists
 	const event = getEvent(eventId);
 	if (!event) {
 		return interaction.reply({
@@ -602,7 +603,6 @@ async function handleApproveEquipment(interaction) {
 		});
 	}
 
-	// Verify equipment exists
 	const equipment = getEquipment(equipmentId);
 	if (!equipment) {
 		return interaction.reply({
@@ -612,7 +612,6 @@ async function handleApproveEquipment(interaction) {
 	}
 
 	try {
-		// Get the equipment request
 		const db = getDatabase();
 		const request = db
 			.prepare(
@@ -634,10 +633,8 @@ async function handleApproveEquipment(interaction) {
 			});
 		}
 
-		// Update the request status
 		updateEquipmentRequestStatus(eventId, equipmentId, "approved");
 
-		// Create an embed for the approval notification
 		const approvalEmbed = createEmbed({
 			title: "Equipment Request Approved",
 			description: `Equipment request for event: **${event.title}** has been approved`,
@@ -669,11 +666,11 @@ async function handleApproveEquipment(interaction) {
 				},
 				{
 					name: "Event Date",
-					value: new Date(event.time).toLocaleString(),
+					value: `<t:${event.time}:F> (<t:${event.time}:R>)`,
 					inline: true,
 				},
 			],
-			color: 0x2ecc71, // Green for approval
+			color: 0x2ecc71,
 		});
 
 		await interaction.reply({
@@ -681,7 +678,6 @@ async function handleApproveEquipment(interaction) {
 			ephemeral: true,
 		});
 
-		// Post to the equipment request channel if configured
 		if (EQUIPMENT_REQUEST_CHANNEL_ID) {
 			const channel = interaction.client.channels.cache.get(
 				EQUIPMENT_REQUEST_CHANNEL_ID,
@@ -691,7 +687,6 @@ async function handleApproveEquipment(interaction) {
 			}
 		}
 
-		// Try to notify the requester
 		try {
 			const requester = await interaction.client.users.fetch(
 				request.requested_by,
@@ -717,7 +712,6 @@ async function handleDenyEquipment(interaction) {
 	const reason =
 		interaction.options.getString("reason") || "No reason provided";
 
-	// Verify event exists
 	const event = getEvent(eventId);
 	if (!event) {
 		return interaction.reply({
@@ -726,7 +720,6 @@ async function handleDenyEquipment(interaction) {
 		});
 	}
 
-	// Verify equipment exists
 	const equipment = getEquipment(equipmentId);
 	if (!equipment) {
 		return interaction.reply({
@@ -736,7 +729,6 @@ async function handleDenyEquipment(interaction) {
 	}
 
 	try {
-		// Get the equipment request
 		const db = getDatabase();
 		const request = db
 			.prepare(
@@ -758,15 +750,12 @@ async function handleDenyEquipment(interaction) {
 			});
 		}
 
-		// Update the request status
 		updateEquipmentRequestStatus(eventId, equipmentId, "denied");
 
-		// Return the quantity to available
 		db.prepare(
 			"UPDATE equipment SET available_quantity = available_quantity + ? WHERE id = ?",
 		).run(request.quantity, equipmentId);
 
-		// Create an embed for the denial notification
 		const denialEmbed = createEmbed({
 			title: "Equipment Request Denied",
 			description: `Equipment request for event: **${event.title}** has been denied`,
@@ -797,12 +786,17 @@ async function handleDenyEquipment(interaction) {
 					inline: true,
 				},
 				{
+					name: "Event Date",
+					value: `<t:${event.time}:F> (<t:${event.time}:R>)`,
+					inline: true,
+				},
+				{
 					name: "Reason",
 					value: reason,
 					inline: false,
 				},
 			],
-			color: 0xe74c3c, // Red for denial
+			color: 0xe74c3c,
 		});
 
 		await interaction.reply({
@@ -810,7 +804,6 @@ async function handleDenyEquipment(interaction) {
 			ephemeral: true,
 		});
 
-		// Post to the equipment request channel if configured
 		if (EQUIPMENT_REQUEST_CHANNEL_ID) {
 			const channel = interaction.client.channels.cache.get(
 				EQUIPMENT_REQUEST_CHANNEL_ID,
@@ -820,7 +813,6 @@ async function handleDenyEquipment(interaction) {
 			}
 		}
 
-		// Try to notify the requester
 		try {
 			const requester = await interaction.client.users.fetch(
 				request.requested_by,
@@ -844,7 +836,6 @@ async function handlePendingRequests(interaction) {
 	const targetChannel =
 		interaction.options.getChannel("channel") || interaction.channel;
 
-	// Get all pending equipment requests
 	const db = getDatabase();
 
 	try {
@@ -866,7 +857,6 @@ async function handlePendingRequests(interaction) {
 			});
 		}
 
-		// Group requests by event
 		const groupedRequests = {};
 		// biome-ignore lint/complexity/noForEach: <explanation>
 		pendingRequests.forEach((request) => {
@@ -880,17 +870,16 @@ async function handlePendingRequests(interaction) {
 			groupedRequests[request.event_id].requests.push(request);
 		});
 
-		// Create embed
 		const embed = createEmbed({
 			title: "Pending Equipment Requests",
 			description: "The following equipment requests are awaiting approval:",
 			fields: Object.entries(groupedRequests).map(([eventId, eventData]) => {
 				return {
-					name: `📅 ${eventData.title} - ${new Date(eventData.time).toLocaleString()}`,
+					name: `📅 ${eventData.title} - <t:${eventData.time}:F> (<t:${eventData.time}:R>)`,
 					value: eventData.requests
 						.map(
 							(req) =>
-								`• **${req.equipment_name}** (${req.quantity}x) - Requested by <@${req.requested_by}> on ${new Date(req.requested_at).toLocaleString()}`,
+								`• **${req.equipment_name}** (${req.quantity}x) - Requested by <@${req.requested_by}> on <t:${Math.floor(new Date(req.requested_at).getTime() / 1000)}:F>`,
 						)
 						.join("\n"),
 					inline: false,
@@ -898,7 +887,6 @@ async function handlePendingRequests(interaction) {
 			}),
 		});
 
-		// Send to the target channel
 		if (targetChannel && targetChannel.id !== interaction.channelId) {
 			await targetChannel.send({ embeds: [embed] });
 			await interaction.reply({
@@ -906,7 +894,6 @@ async function handlePendingRequests(interaction) {
 				ephemeral: true,
 			});
 		} else {
-			// If posting in the same channel, just reply to the interaction
 			await interaction.reply({
 				embeds: [embed],
 				ephemeral: false,
@@ -1170,17 +1157,22 @@ export async function autocomplete(interaction, client) {
 	let choices = [];
 
 	try {
-		if (focusedOption.name === "event-id") {
-			// Get all events from database
-			const db = getDatabase();
+		const db = getDatabase();
 
-			const events = db.prepare("SELECT id, title FROM events").all();
+		if (focusedOption.name === "event-id") {
+			// Only show future events
+			const now = Math.floor(Date.now() / 1000);
+			const events = db
+				.prepare(
+					"SELECT id, title FROM events WHERE time > ? ORDER BY time ASC",
+				)
+				.all(now);
+
 			choices = events.map((event) => ({
 				name: `${event.title} (${event.id})`,
 				value: event.id,
 			}));
 		} else if (focusedOption.name === "equipment-id") {
-			// Get available equipment
 			const equipment = getAvailableEquipment();
 
 			if (equipment && Array.isArray(equipment)) {
@@ -1193,16 +1185,13 @@ export async function autocomplete(interaction, client) {
 			}
 		}
 
-		// Filter based on user input
 		const filtered = choices.filter((choice) =>
 			choice.name.toLowerCase().includes(focusedOption.value.toLowerCase()),
 		);
 
-		// Discord has a limit of 25 choices
 		await interaction.respond(filtered.slice(0, 25));
 	} catch (error) {
 		console.error("Error in autocomplete:", error);
-		// Try to respond with empty choices to prevent the autocomplete from hanging
 		try {
 			await interaction.respond([]);
 		} catch (e) {

@@ -600,6 +600,36 @@
     "category": "Equipment"
   },
   {
+    "id": "1374408466042716190",
+    "application_id": "1297310943885394030",
+    "version": "1374408466042716196",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "attendance",
+    "name_localizations": null,
+    "description": "Show the attendance for an event",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 3,
+        "name": "event-id",
+        "name_localizations": null,
+        "description": "The ID of the event",
+        "description_localizations": null,
+        "required": true,
+        "autocomplete": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Events"
+  },
+  {
     "id": "1373861545842446461",
     "application_id": "1297310943885394030",
     "version": "1373861546098294925",
@@ -740,12 +770,12 @@
   {
     "id": "1373861545842446466",
     "application_id": "1297310943885394030",
-    "version": "1373861546098294930",
+    "version": "1374406836727320696",
     "default_member_permissions": null,
     "type": 1,
     "name": "remind-event",
     "name_localizations": null,
-    "description": "Send a reminder to all attendees about an upcoming event",
+    "description": "Create a new event.",
     "description_localizations": null,
     "dm_permission": true,
     "contexts": null,
@@ -758,21 +788,244 @@
         "type": 3,
         "name": "id",
         "name_localizations": null,
-        "description": "The ID of the event to send reminders for",
+        "description": "The ID of the event to delete",
         "description_localizations": null,
         "required": true,
         "autocomplete": true
-      },
-      {
-        "type": 3,
-        "name": "message",
-        "name_localizations": null,
-        "description": "Optional custom message to include with the reminder",
-        "description_localizations": null
       }
     ],
     "nsfw": false,
     "category": "Events"
+  },
+  {
+    "id": "1374406023799902268",
+    "application_id": "1297310943885394030",
+    "version": "1374406023980384257",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "8ball",
+    "name_localizations": null,
+    "description": "Ask the magic 8-ball a question.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 3,
+        "name": "question",
+        "name_localizations": null,
+        "description": "Your question",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374408466042716191",
+    "application_id": "1297310943885394030",
+    "version": "1374408466042716197",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "callmedic",
+    "name_localizations": null,
+    "description": "Call for a medic (sends a meme).",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406154393878549",
+    "application_id": "1297310943885394030",
+    "version": "1374406154393878554",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "cat",
+    "name_localizations": null,
+    "description": "Get a random cat picture!",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406023799902269",
+    "application_id": "1297310943885394030",
+    "version": "1374406023980384258",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "coinflip",
+    "name_localizations": null,
+    "description": "Flip a coin!",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406023799902270",
+    "application_id": "1297310943885394030",
+    "version": "1374406023980384259",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "compliment",
+    "name_localizations": null,
+    "description": "Give a user a random compliment.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 6,
+        "name": "user",
+        "name_localizations": null,
+        "description": "Who do you want to compliment?",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406154393878550",
+    "application_id": "1297310943885394030",
+    "version": "1374406154393878555",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "dadjoke",
+    "name_localizations": null,
+    "description": "Get a random dad joke!",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406154393878551",
+    "application_id": "1297310943885394030",
+    "version": "1374406154393878556",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "dog",
+    "name_localizations": null,
+    "description": "Get a random dog picture!",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406154393878552",
+    "application_id": "1297310943885394030",
+    "version": "1374406154393878557",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "fox",
+    "name_localizations": null,
+    "description": "Get a random fox picture!",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374407342720028714",
+    "application_id": "1297310943885394030",
+    "version": "1374407342720028715",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "hack",
+    "name_localizations": null,
+    "description": "Pretend to hack a user (for fun!)",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 6,
+        "name": "user",
+        "name_localizations": null,
+        "description": "User to hack",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406023799902271",
+    "application_id": "1297310943885394030",
+    "version": "1374406023980384260",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "insult",
+    "name_localizations": null,
+    "description": "Send a random (mild) insult.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 6,
+        "name": "user",
+        "name_localizations": null,
+        "description": "User to insult",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
   },
   {
     "id": "1373861545842446467",
@@ -799,6 +1052,70 @@
         "description_localizations": null,
         "required": true
       }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406023799902272",
+    "application_id": "1297310943885394030",
+    "version": "1374406023980384261",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "poll",
+    "name_localizations": null,
+    "description": "Create a quick poll.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 3,
+        "name": "question",
+        "name_localizations": null,
+        "description": "Poll question",
+        "description_localizations": null,
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "option1",
+        "name_localizations": null,
+        "description": "First option",
+        "description_localizations": null,
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "option2",
+        "name_localizations": null,
+        "description": "Second option",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374408466042716192",
+    "application_id": "1297310943885394030",
+    "version": "1374408466042716198",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "quote",
+    "name_localizations": null,
+    "description": "Get a random inspirational or funny quote.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
     ],
     "nsfw": false,
     "category": "Fun"
@@ -833,6 +1150,197 @@
         "name": "stat",
         "name_localizations": null,
         "description": "What stat are we checking?",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406023799902273",
+    "application_id": "1297310943885394030",
+    "version": "1374406023980384262",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "reverse",
+    "name_localizations": null,
+    "description": "Reverse your text!",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 3,
+        "name": "text",
+        "name_localizations": null,
+        "description": "Text to reverse",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406023799902274",
+    "application_id": "1297310943885394030",
+    "version": "1374406023980384263",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "roll",
+    "name_localizations": null,
+    "description": "Roll a die or dice.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 4,
+        "name": "sides",
+        "name_localizations": null,
+        "description": "Number of sides",
+        "description_localizations": null,
+        "required": true,
+        "min_value": 2
+      },
+      {
+        "type": 4,
+        "name": "times",
+        "name_localizations": null,
+        "description": "How many dice? (default 1)",
+        "description_localizations": null,
+        "min_value": 1
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406023799902275",
+    "application_id": "1297310943885394030",
+    "version": "1374406023980384264",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "say",
+    "name_localizations": null,
+    "description": "Make the bot say something.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 3,
+        "name": "text",
+        "name_localizations": null,
+        "description": "Text to say",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406023799902276",
+    "application_id": "1297310943885394030",
+    "version": "1374406023980384265",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "ship",
+    "name_localizations": null,
+    "description": "Ship two users and see their compatibility!",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 6,
+        "name": "user1",
+        "name_localizations": null,
+        "description": "First user",
+        "description_localizations": null,
+        "required": true
+      },
+      {
+        "type": 6,
+        "name": "user2",
+        "name_localizations": null,
+        "description": "Second user",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406023799902277",
+    "application_id": "1297310943885394030",
+    "version": "1374406024018264186",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "simprate",
+    "name_localizations": null,
+    "description": "How much of a simp is someone?",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 6,
+        "name": "user",
+        "name_localizations": null,
+        "description": "User to rate",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Fun"
+  },
+  {
+    "id": "1374406154393878553",
+    "application_id": "1297310943885394030",
+    "version": "1374406154507255918",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "urban",
+    "name_localizations": null,
+    "description": "Look up a word on Urban Dictionary.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 3,
+        "name": "word",
+        "name_localizations": null,
+        "description": "Word to look up",
         "description_localizations": null,
         "required": true
       }
@@ -917,6 +1425,80 @@
     "category": "Tag"
   },
   {
+    "id": "1374408466042716193",
+    "application_id": "1297310943885394030",
+    "version": "1374408466042716199",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "avatar",
+    "name_localizations": null,
+    "description": "Show a user's avatar.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 6,
+        "name": "user",
+        "name_localizations": null,
+        "description": "User to get avatar of",
+        "description_localizations": null
+      }
+    ],
+    "nsfw": false,
+    "category": "Useful"
+  },
+  {
+    "id": "1374409305578799124",
+    "application_id": "1297310943885394030",
+    "version": "1374409305578799125",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "generate-mention",
+    "name_localizations": null,
+    "description": "Generate a mention for any slash command",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 3,
+        "name": "command",
+        "name_localizations": null,
+        "description": "The command to mention",
+        "description_localizations": null,
+        "required": true,
+        "autocomplete": true
+      },
+      {
+        "type": 3,
+        "name": "subcommandgroup",
+        "name_localizations": null,
+        "description": "Subcommand group (if applicable)",
+        "description_localizations": null,
+        "autocomplete": true
+      },
+      {
+        "type": 3,
+        "name": "subcommand",
+        "name_localizations": null,
+        "description": "Subcommand (if applicable)",
+        "description_localizations": null,
+        "autocomplete": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Useful"
+  },
+  {
     "id": "1373861545934852161",
     "application_id": "1297310943885394030",
     "version": "1373861546123595850",
@@ -969,6 +1551,71 @@
     "integration_types": [
       0,
       1
+    ],
+    "nsfw": false,
+    "category": "Useful"
+  },
+  {
+    "id": "1374408466042716194",
+    "application_id": "1297310943885394030",
+    "version": "1374408466168418357",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "remindme",
+    "name_localizations": null,
+    "description": "Set a personal reminder.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 3,
+        "name": "time",
+        "name_localizations": null,
+        "description": "When to remind you (e.g., 10m, 2h, 1d)",
+        "description_localizations": null,
+        "required": true
+      },
+      {
+        "type": 3,
+        "name": "message",
+        "name_localizations": null,
+        "description": "What should I remind you?",
+        "description_localizations": null,
+        "required": true
+      }
+    ],
+    "nsfw": false,
+    "category": "Useful"
+  },
+  {
+    "id": "1374408466042716195",
+    "application_id": "1297310943885394030",
+    "version": "1374408466168418358",
+    "default_member_permissions": null,
+    "type": 1,
+    "name": "user-info",
+    "name_localizations": null,
+    "description": "Show information about a user.",
+    "description_localizations": null,
+    "dm_permission": true,
+    "contexts": null,
+    "integration_types": [
+      0,
+      1
+    ],
+    "options": [
+      {
+        "type": 6,
+        "name": "user",
+        "name_localizations": null,
+        "description": "User to get info about",
+        "description_localizations": null
+      }
     ],
     "nsfw": false,
     "category": "Useful"

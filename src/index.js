@@ -12,6 +12,7 @@ import { setupReminderSystem } from "./utils/reminderSystem.js";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
+import chalk from "chalk";
 
 dotenv.config();
 
@@ -49,35 +50,42 @@ const client = new Client({
 
 // Handle ready event
 client.once("ready", async () => {
-	console.log(`Logged in as ${client.user.tag}`);
+	console.log(
+		chalk.greenBright(`✅ Logged in as ${chalk.bold(client.user.tag)}`),
+	);
 
 	// Initialize database and attach it to the client
 	client.db = setupDatabase();
-	console.log("Database initialized and attached to client");
+	console.log(chalk.cyan("🗄️  Database initialized and attached to client"));
 
 	// Check if we should register commands (using an environment variable)
 	const shouldRegisterCommands = process.env.REGISTER_COMMANDS === "true";
 
 	if (shouldRegisterCommands) {
-		console.log("Registering commands...");
+		console.log(chalk.yellow("⚙️  Registering commands..."));
 		await registerCommands();
-		console.log("Commands registered successfully!");
+		console.log(chalk.green("✅ Commands registered successfully!"));
 	} else {
-		console.log("Skipping command registration on startup");
+		console.log(chalk.gray("⏭️  Skipping command registration on startup"));
 	}
 
 	// Setup status rotation
+	console.log(chalk.blue("🔄 Setting up status rotation..."));
 	setupStatusRotation(client);
 
 	// Setup reminder system with client (which now has db attached)
+	console.log(chalk.blue("⏰ Setting up reminder system..."));
 	setupReminderSystem(client);
 
 	// Send startup log to Discord channel
+	console.log(chalk.magenta("📤 Sending startup log to Discord channel..."));
 	await sendStartupLog(client);
 
 	setInterval(
 		() => {
-			console.log("Checking for ended events and resetting inventory...");
+			console.log(
+				chalk.yellow("🔄 Checking for ended events and resetting inventory..."),
+			);
 			resetInventoryForEndedEvents();
 		},
 		5 * 60 * 1000,
