@@ -121,17 +121,15 @@ export async function autocomplete(interaction) {
 	try {
 		const focusedValue = interaction.options.getFocused().toLowerCase();
 		const db = getDatabase();
-		const currentTime = Math.floor(Date.now() / 1000);
 
 		const events = db
 			.prepare(`
         SELECT id, title, time 
-        FROM events 
-        WHERE time > ? 
+        FROM events
         ORDER BY time ASC 
         LIMIT 25
       `)
-			.all(currentTime);
+			.all();
 
 		const filtered = events.filter(
 			(event) =>

@@ -107,20 +107,6 @@ export const data = new SlashCommandBuilder()
 	)
 	.addSubcommand((subcommand) =>
 		subcommand
-			.setName("inventory")
-			.setDescription("List all available equipment")
-			.addChannelOption((option) =>
-				option
-					.setName("channel")
-					.setDescription(
-						"Channel to post the inventory (defaults to current channel)",
-					)
-					.addChannelTypes(ChannelType.GuildText)
-					.setRequired(false),
-			),
-	)
-	.addSubcommand((subcommand) =>
-		subcommand
 			.setName("approve")
 			.setDescription("Approve an equipment request")
 			.addStringOption((option) =>
@@ -191,9 +177,6 @@ export async function execute(interaction) {
 				break;
 			case "list":
 				await handleListEquipment(interaction);
-				break;
-			case "inventory":
-				await handleInventory(interaction);
 				break;
 			case "approve":
 				await handleApproveEquipment(interaction);
@@ -528,62 +511,6 @@ async function handleListEquipment(interaction) {
 			ephemeral: true,
 		});
 	} else {
-		await interaction.reply({
-			embeds: [embed],
-			ephemeral: false,
-		});
-	}
-}
-
-async function handleInventory(interaction) {
-	const targetChannel =
-		interaction.options.getChannel("channel") || interaction.channel;
-	const equipment = getAllEquipment();
-
-	if (equipment.length === 0) {
-		return interaction.reply({
-			content: "No equipment found in inventory.",
-			ephemeral: true,
-		});
-	}
-
-	// Group equipment by category
-	const groupedEquipment = {};
-	// biome-ignore lint/complexity/noForEach: <explanation>
-	equipment.forEach((item) => {
-		if (!groupedEquipment[item.category]) {
-			groupedEquipment[item.category] = [];
-		}
-		groupedEquipment[item.category].push(item);
-	});
-
-	// Create embed
-	const embed = createEmbed({
-		title: "Equipment Inventory",
-		description: "Available equipment in inventory:",
-		fields: Object.entries(groupedEquipment).map(([category, items]) => {
-			return {
-				name: `📋 ${category}`,
-				value: items
-					.map(
-						(item) =>
-							`• **${item.name}** - ${item.available_quantity}/${item.total_quantity} available`,
-					)
-					.join("\n"),
-				inline: false,
-			};
-		}),
-	});
-
-	// Send to the target channel
-	if (targetChannel && targetChannel.id !== interaction.channelId) {
-		await targetChannel.send({ embeds: [embed] });
-		await interaction.reply({
-			content: `Equipment inventory has been posted in <#${targetChannel.id}>`,
-			ephemeral: true,
-		});
-	} else {
-		// If posting in the same channel, just reply to the interaction
 		await interaction.reply({
 			embeds: [embed],
 			ephemeral: false,

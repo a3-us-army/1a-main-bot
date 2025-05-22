@@ -1,0 +1,29 @@
+body {
+	background: #181824 !important;
+	color: #fff !important;
+}
+.card,
+.table,
+.modal-content {
+	background: #232336 !important;
+	color: #fff !important;
+}
+.table-dark,
+.navbar,
+.btn-primary,
+.bg-primary {
+	background: #3c00a3 !important;
+	border-color: #3c00a3 !important;
+}
+.btn-outline-primary {
+	color: #3c00a3 !important;
+	border-color: #3c00a3 !important;
+}
+.btn-outline-primary:hover {
+	background: #3c00a3 !important;
+	color: #fff !important;
+}
+a,
+.btn-link {
+	color: #a37fff !important;
+}

@@ -19,9 +19,6 @@ export const data = new SlashCommandBuilder()
 			.addChoices(
 				{ name: "Weapons", value: "Weapons" },
 				{ name: "Vehicles", value: "Vehicles" },
-				{ name: "Communications", value: "Communications" },
-				{ name: "Medical", value: "Medical" },
-				{ name: "Tactical", value: "Tactical" },
 				{ name: "Other", value: "Other" },
 			),
 	)
@@ -78,33 +75,33 @@ export async function execute(interaction) {
 	}
 }
 export async function autocomplete(interaction, client) {
-    const focusedOption = interaction.options.getFocused(true);
-    let choices = [];
-  
-    if (focusedOption.name === "event-id") {
-      // Get all events from database
-      const db = getDatabase();
-      const events = db.prepare("SELECT id, title FROM events").all();
-  
-      choices = events.map((event) => ({
-        name: `${event.title} (${event.id})`,
-        value: event.id,
-      }));
-    } else if (focusedOption.name === "equipment-id") {
-      // Get available equipment
-      const equipment = getAvailableEquipment();
-  
-      choices = equipment.map((item) => ({
-        name: `${item.name} (${item.available_quantity} available)`,
-        value: item.id,
-      }));
-    }
-  
-    // Filter based on user input
-    const filtered = choices.filter((choice) =>
-      choice.name.toLowerCase().includes(focusedOption.value.toLowerCase()),
-    );
-  
-    // Discord has a limit of 25 choices
-    await interaction.respond(filtered.slice(0, 25));
-  }
+	const focusedOption = interaction.options.getFocused(true);
+	let choices = [];
+
+	if (focusedOption.name === "event-id") {
+		// Get all events from database
+		const db = getDatabase();
+		const events = db.prepare("SELECT id, title FROM events").all();
+
+		choices = events.map((event) => ({
+			name: `${event.title} (${event.id})`,
+			value: event.id,
+		}));
+	} else if (focusedOption.name === "equipment-id") {
+		// Get available equipment
+		const equipment = getAvailableEquipment();
+
+		choices = equipment.map((item) => ({
+			name: `${item.name} (${item.available_quantity} available)`,
+			value: item.id,
+		}));
+	}
+
+	// Filter based on user input
+	const filtered = choices.filter((choice) =>
+		choice.name.toLowerCase().includes(focusedOption.value.toLowerCase()),
+	);
+
+	// Discord has a limit of 25 choices
+	await interaction.respond(filtered.slice(0, 25));
+}

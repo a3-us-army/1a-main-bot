@@ -1,0 +1,55 @@
+<nav class="navbar navbar-expand-lg" style="background: #3c00a3;">
+	<div class="container">
+		<a class="navbar-brand text-white fw-bold fs-4 py-0" href="/" style="letter-spacing:0.03em;">1A Admin</a>
+		<button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar" aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+			<span class="navbar-toggler-icon"></span>
+		</button>
+		<div class="collapse navbar-collapse" id="mainNavbar">
+			<ul class="navbar-nav me-auto mb-2 mb-lg-0">
+				<li class="nav-item">
+					<a class="nav-link text-white <% if (active === 'home') { %>fw-bold border-bottom border-2 border-white<% } %>" href="/">Home</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link text-white <% if (active === 'events') { %>fw-bold border-bottom border-2 border-white<% } %>" href="/events">Events</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link text-white <% if (active === 'certs') { %>fw-bold border-bottom border-2 border-white<% } %>" href="/certs">Certifications</a>
+				</li>
+				<li class="nav-item">
+					<a class="nav-link text-white <% if (active === 'my-certs') { %>fw-bold border-bottom border-2 border-white<% } %>" href="/my-certs">My Certifications</a>
+				</li>
+			</ul>
+			<div class="d-flex align-items-center gap-2">
+				<% if (user) { %>
+					<img src="<%= user.avatar ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png` : '' %>" width="32" height="32" class="rounded-circle" alt="User Avatar" style="object-fit:cover;">
+					<span class="navbar-text text-white small fw-semibold"><%= user.username %></span>
+					<a href="/logout" class="btn btn-outline-light btn-sm ms-2">Logout</a>
+				<% } else { %>
+					<a href="/login" class="btn btn-outline-light btn-sm ms-2">Login with Discord</a>
+				<% } %>
+			</div>
+		</div>
+	</div>
+	<style>
+		.navbar {
+			box-shadow: 0 2px 8px 0 #0002;
+		}
+		.nav-link {
+			transition: background 0.15s, color 0.15s;
+			border-radius: 0.4rem;
+		}
+		.nav-link:hover, .nav-link:focus {
+			background: #2a0066;
+			color: #fff !important;
+		}
+		.navbar-brand {
+			font-size: 1.35rem !important;
+			padding-top: 0.2rem;
+			padding-bottom: 0.2rem;
+		}
+		@media (max-width: 600px) {
+			.navbar-brand { font-size: 1.1rem !important; }
+			.nav-link { font-size: 1rem; }
+		}
+	</style>
+</nav>

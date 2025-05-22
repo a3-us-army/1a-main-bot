@@ -57,7 +57,7 @@ function formatUptime(seconds) {
 // Get package version from package.json
 function getPackageVersion() {
 	try {
-		const packagePath = path.join(__dirname, "../../package.json");
+		const packagePath = path.join(__dirname, "../../../package.json");
 		const packageData = fs.readFileSync(packagePath, "utf8");
 		const packageJson = JSON.parse(packageData);
 		return packageJson.version || "Unknown";

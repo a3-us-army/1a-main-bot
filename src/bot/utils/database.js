@@ -499,6 +499,37 @@ export function updateEquipmentRequestStatusByRequestId(requestId, status) {
 		.run(status, requestId);
 }
 
+export function editEquipment(
+	equipmentId,
+	{ name, category, quantity, description },
+) {
+	const db = getDatabase();
+	const updates = [];
+	const params = [];
+
+	if (name) {
+		updates.push("name = ?");
+		params.push(name);
+	}
+	if (category) {
+		updates.push("category = ?");
+		params.push(category);
+	}
+	if (quantity) {
+		updates.push("total_quantity = ?", "available_quantity = ?");
+		params.push(quantity, quantity); // Optionally, only update available_quantity if you want
+	}
+	if (description) {
+		updates.push("description = ?");
+		params.push(description);
+	}
+	if (updates.length === 0) return;
+
+	const sql = `UPDATE equipment SET ${updates.join(", ")} WHERE id = ?`;
+	params.push(equipmentId);
+	db.prepare(sql).run(...params);
+}
+
 import { v4 as uuidv4 } from "uuid";
 
 // Call this in setupDatabase()

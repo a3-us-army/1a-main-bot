@@ -1,5 +1,16 @@
-import { Client, GatewayIntentBits } from "discord.js";
 import dotenv from "dotenv";
+import fs from "fs";
+import path from "path";
+import chalk from "chalk";
+import express from "express";
+import {
+	Client,
+	GatewayIntentBits,
+	EmbedBuilder,
+	ButtonBuilder,
+	ButtonStyle,
+	ActionRowBuilder
+} from "discord.js";
 import {
 	setupDatabase,
 	resetInventoryForEndedEvents,
@@ -9,10 +20,9 @@ import { setupStatusRotation } from "./utils/statusRotation.js";
 import { handleButtonInteraction } from "./handlers/buttonHandler.js";
 import { sendStartupLog } from "./utils/logger.js";
 import { setupReminderSystem } from "./utils/reminderSystem.js";
-import fs from "fs";
-import path from "path";
 import { fileURLToPath, pathToFileURL } from "url";
-import chalk from "chalk";
+import { buildEventEmbed } from "../utils/rsvp_embed.js";
+import { setupFullLogger } from "./utils/discord_logs.js";
 
 dotenv.config();
 
@@ -90,6 +100,7 @@ client.once("ready", async () => {
 		},
 		5 * 60 * 1000,
 	);
+	setupFullLogger(client, process.env.LOG_CHANNEL_ID);
 });
 
 // Handle message events for eval command
@@ -108,7 +119,7 @@ client.on("messageCreate", async (message) => {
 	if (content.startsWith("eval")) {
 		try {
 			const { handleEval } = await import(
-				"./commands/text-commands/textEval.js"
+				"../commands/text-commands/textEval.js"
 			);
 			await handleEval(message, content.slice(4).trim(), client);
 		} catch (error) {
@@ -165,14 +176,14 @@ client.on("interactionCreate", async (interaction) => {
 		try {
 			if (interaction.customId === "create_event_modal") {
 				const { handleModalSubmit } = await import(
-					"./commands/events/create-event.js"
+					"../commands/events/create-event.js"
 				);
 				await handleModalSubmit(interaction, client);
 			}
 			// Handle equipment denial reason modal with updated custom ID format
 			else if (interaction.customId.startsWith("deny_r_")) {
 				const { handleModalSubmit } = await import(
-					"./commands/equipment/equipment-request.js"
+					"../commands/equipment/equipment-request.js"
 				);
 				await handleModalSubmit(interaction);
 			}
@@ -210,14 +221,14 @@ client.on("interactionCreate", async (interaction) => {
 			// Handle equipment approval buttons with new format
 			else if (interaction.customId.startsWith("app_eq_")) {
 				const { handleButtonInteraction } = await import(
-					"./commands/equipment/equipment-request.js"
+					"../commands/equipment/equipment-request.js"
 				);
 				await handleButtonInteraction(interaction);
 			}
 			// Handle equipment denial buttons with new format
 			else if (interaction.customId.startsWith("den_eq_")) {
 				const { handleButtonInteraction } = await import(
-					"./commands/equipment/equipment-request.js"
+					"../commands/equipment/equipment-request.js"
 				);
 				await handleButtonInteraction(interaction);
 			}
@@ -248,3 +259,165 @@ process.on("uncaughtException", async (error) => {
 
 // Login to Discord
 client.login(process.env.DISCORD_TOKEN);
+
+const apiApp = express();
+apiApp.use(express.json());
+apiApp.set("discordClient", client);
+
+apiApp.post("/api/post-event", async (req, res) => {
+	// Security check
+	const authHeader = req.headers.authorization;
+	const expected = `Bearer ${process.env.BOT_API_SECRET}`;
+	if (authHeader !== expected) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+
+	try {
+		const { channelId, event } = req.body;
+		if (!channelId || !event) {
+			return res.status(400).json({ error: "Missing channelId or event" });
+		}
+
+		const channel = await client.channels.fetch(channelId);
+		if (!channel || !channel.isTextBased()) {
+			return res
+				.status(404)
+				.json({ error: "Channel not found or not text-based" });
+		}
+
+		// Use the same embed as the Discord command
+		const { embed, components } = buildEventEmbed(event);
+		const message = await channel.send({ embeds: [embed], components });
+		res.json({ messageId: message.id });
+	} catch (err) {
+		console.error(err);
+		res.status(500).json({ error: "Failed to post event" });
+	}
+});
+
+const BOT_API_PORT = process.env.BOT_API_PORT || 3001;
+apiApp.listen(BOT_API_PORT, () => {
+	console.log(`Bot REST API running on port ${BOT_API_PORT}`);
+});
+
+apiApp.get("/api/channels", async (req, res) => {
+	const authHeader = req.headers.authorization;
+	const expected = `Bearer ${process.env.BOT_API_SECRET}`;
+	if (authHeader !== expected) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+
+	try {
+		const guild = await client.guilds.fetch(process.env.GUILD_ID);
+		const fullGuild = await guild.fetch();
+		const channels = await fullGuild.channels.fetch();
+
+		const categories = [];
+		const textChannels = [];
+
+		for (const [, channel] of channels) {
+			if (channel.type === 4) {
+				// Category
+				categories.push({ id: channel.id, name: channel.name });
+			} else if (channel.type === 0) {
+				// Text
+				textChannels.push({
+					id: channel.id,
+					name: channel.name,
+					parentId: channel.parentId,
+				});
+			}
+		}
+
+		res.json({ categories, textChannels });
+	} catch (err) {
+		console.error("Failed to fetch channels:", err);
+		res.status(500).json({ error: "Failed to fetch channels" });
+	}
+});
+
+apiApp.post("/api/delete-message", async (req, res) => {
+	const authHeader = req.headers.authorization;
+	const expected = `Bearer ${process.env.BOT_API_SECRET}`;
+	if (authHeader !== expected) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+	const { channelId, messageId } = req.body;
+	if (!channelId || !messageId) {
+		return res.status(400).json({ error: "Missing channelId or messageId" });
+	}
+	try {
+		const channel = await client.channels.fetch(channelId);
+		if (!channel || !channel.isTextBased()) {
+			return res
+				.status(404)
+				.json({ error: "Channel not found or not text-based" });
+		}
+		const message = await channel.messages.fetch(messageId);
+		await message.delete();
+		res.json({ success: true });
+	} catch (err) {
+		console.error("Failed to delete message:", err);
+		res.status(500).json({ error: "Failed to delete message" });
+	}
+});
+
+apiApp.post("/api/request-cert", async (req, res) => {
+	const authHeader = req.headers.authorization;
+	const expected = `Bearer ${process.env.BOT_API_SECRET}`;
+	if (authHeader !== expected) {
+		return res.status(401).json({ error: "Unauthorized" });
+	}
+
+	try {
+		const { userId, cert, requestId } = req.body;
+		const channelId = process.env.CERT_REQUEST_CHANNEL_ID;
+		if (!userId || !cert || !channelId) {
+			return res.status(400).json({ error: "Missing data" });
+		}
+
+		const client = req.app.get("discordClient") || global.discordClient; // however you access your client
+		const channel = await client.channels.fetch(channelId);
+		if (!channel?.isTextBased()) {
+			return res.status(404).json({ error: "Channel not found" });
+		}
+
+		const embed = new EmbedBuilder()
+			.setTitle("Certification Request")
+			.setDescription(`User: <@${userId}>`)
+			.addFields(
+				{ name: "Certification", value: cert.name, inline: true },
+				{
+					name: "Description",
+					value: cert.description || "No description",
+					inline: false,
+				},
+				{
+					name: "Requested At",
+					value: `<t:${Math.floor(Date.now() / 1000)}:F>`,
+					inline: true,
+				},
+				{ name: "Request ID", value: requestId, inline: true },
+			)
+			.setColor(0xffa500);
+
+		const approveBtn = new ButtonBuilder()
+			.setCustomId(`cert_approve_${requestId}`)
+			.setLabel("Approve")
+			.setStyle(ButtonStyle.Success);
+
+		const denyBtn = new ButtonBuilder()
+			.setCustomId(`cert_deny_${requestId}`)
+			.setLabel("Deny")
+			.setStyle(ButtonStyle.Danger);
+
+		const row = new ActionRowBuilder().addComponents(approveBtn, denyBtn);
+
+		await channel.send({ embeds: [embed], components: [row] });
+
+		res.json({ success: true });
+	} catch (err) {
+		console.error("Error posting cert request to Discord:", err);
+		res.status(500).json({ error: "Failed to post to Discord" });
+	}
+});

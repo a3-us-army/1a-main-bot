@@ -19,6 +19,7 @@ import {
 	denyCertificationRequest,
 } from "../utils/database.js";
 import { createEmbed } from "../utils/utils.js";
+import { buildEventEmbed } from "../../utils/rsvp_embed.js";
 
 export async function handleButtonInteraction(interaction) {
 	const { customId } = interaction;
@@ -60,54 +61,20 @@ async function handleRSVPButton(interaction) {
 		const notGoingUsers = getRSVPs(eventId, "no");
 		const maybeUsers = getRSVPs(eventId, "maybe");
 
-		const goingMentions = goingUsers
-			.map((user) => `<@${user.user_id}>`)
-			.join("\n");
-		const notGoingMentions = notGoingUsers
-			.map((user) => `<@${user.user_id}>`)
-			.join("\n");
-		const maybeMentions = maybeUsers
-			.map((user) => `<@${user.user_id}>`)
-			.join("\n");
-
 		const event = getEvent(eventId);
 
-		const updatedEmbed = new EmbedBuilder()
-			.setTitle(`${event.title}`)
-			.setDescription(
-				`${event.description}\n\n**Event Time**: <t:${event.time}:F> (<t:${event.time}:R>)\n\n**Location**: ${event.location}`,
-			)
-			.addFields(
-				{
-					name: `<:checkmark:1365157872685547540> Attending (${goingUsers.length})`,
-					value: goingMentions || "No one",
-					inline: true,
-				},
-				{
-					name: `<:x_:1365157886908567592> Not Attending (${notGoingUsers.length})`,
-					value: notGoingMentions || "No one",
-					inline: true,
-				},
-				{
-					name: `<:question:1365157901450346536> Maybe (${maybeUsers.length})`,
-					value: maybeMentions || "No one",
-					inline: true,
-				},
-			)
-			.setColor(0x5865f2)
-			.setTimestamp()
-			.setFooter({ text: `Event ID: ${eventId}` });
-
-		if (event.image) {
-			updatedEmbed.setThumbnail(event.image);
-		} else {
-			updatedEmbed.setThumbnail("https://cdn.xanderxx.xyz/1a-logo.png");
+		// --- ENSURE DESCRIPTION IS NON-EMPTY ---
+		if (!event.description || !event.description.trim()) {
+			event.description = "No description provided.";
 		}
+
+		const rsvps = { goingUsers, notGoingUsers, maybeUsers };
+		const { embed, components } = buildEventEmbed(event, rsvps);
 
 		const message = await interaction.message.channel.messages.fetch(
 			interaction.message.id,
 		);
-		await message.edit({ embeds: [updatedEmbed] });
+		await message.edit({ embeds: [embed], components });
 		await interaction.deferUpdate();
 	} catch (error) {
 		console.error("Error handling RSVP button interaction:", error);
@@ -355,6 +322,32 @@ async function handleCertApprovalButton(interaction) {
 			`Your certification request for **${req.cert_name}** has been approved!`,
 		);
 	} catch (e) {}
+}
+
+async function handleCertDenialButton(interaction) {
+	const requestId = interaction.customId.replace("cert_deny_", "");
+	try {
+		const modal = new ModalBuilder()
+			.setCustomId(`cert_deny_modal_${requestId}`)
+			.setTitle("Denial Reason");
+
+		const reasonInput = new TextInputBuilder()
+			.setCustomId("denial_reason")
+			.setLabel("Reason for denying this certification request")
+			.setStyle(TextInputStyle.Paragraph)
+			.setRequired(true);
+
+		const firstActionRow = new ActionRowBuilder().addComponents(reasonInput);
+		modal.addComponents(firstActionRow);
+
+		await interaction.showModal(modal);
+	} catch (error) {
+		console.error("Error showing cert denial modal:", error);
+		await interaction.reply({
+			content: `Error: ${error.message}`,
+			ephemeral: true,
+		});
+	}
 }
 
 // Modal handler for cert denial (add to your modal handler file)

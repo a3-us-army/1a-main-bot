@@ -1,0 +1,53 @@
+<style>
+	html, body {
+		height: 100%;
+	}
+	body {
+		display: flex;
+		flex-direction: column;
+		min-height: 100vh;
+	}
+	#main-content {
+		flex: 1 0 auto;
+	}
+	.site-footer {
+		flex-shrink: 0;
+	}
+	.footer-link {
+		color: #fff;
+		text-decoration: none;
+		font-size: 1.1rem;
+		margin-bottom: 0.5rem;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		transition: color 0.15s;
+	}
+	.footer-link i {
+		margin-right: 0.5rem;
+	}
+	.footer-link:hover {
+		color: #a084e8;
+		text-decoration: underline;
+	}
+	.footer-divider {
+		border-top: 1px solid #444;
+		margin: 1.2rem 0 1rem 0;
+	}
+</style>
+
+<footer class="site-footer mt-auto pt-4 pb-3" style="background: #232336; color: #bdbdbd;">
+	<div class="container d-flex flex-column align-items-center">
+		<a href="https://discord.gg/fb3rFHQyrG" target="_blank" rel="noopener" class="footer-link">
+			<i class="bi bi-discord" style="font-size: 1.5rem;"></i> Discord
+		</a>
+		<a href="https://dash.xanderxx.xyz" target="_blank" rel="noopener" class="footer-link">
+			<i class="bi bi-globe" style="font-size: 1.5rem;"></i> Main Site
+		</a>
+		<a href="/tos" class="footer-link">Terms of Service</a>
+		<a href="/privacy" class="footer-link">Privacy Policy</a>
+		<div class="footer-divider w-100"></div>
+		<small class="text-white-50 text-center d-block">&copy; <%= new Date().getFullYear() %> 1A Administration. All rights reserved.</small>
+	</div>
+	<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+</footer>
